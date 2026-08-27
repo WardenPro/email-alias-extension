@@ -35,10 +35,9 @@ export function buildManifest(target: ExtensionTarget): Record<string, unknown> 
     version: packageVersion(),
     description:
       'Generate, recreate, and manage email aliases for your domain with Cloudflare Email Routing.',
+    // Single 128px source; declaring smaller sizes for it trips AMO's icon
+    // validation, and both browsers downscale on their own.
     icons: {
-      '16': 'icon.png',
-      '32': 'icon.png',
-      '48': 'icon.png',
       '128': 'icon.png'
     },
     permissions: ['storage', 'activeTab', 'scripting', 'clipboardWrite'],
@@ -47,9 +46,7 @@ export function buildManifest(target: ExtensionTarget): Record<string, unknown> 
       default_title: 'Email Alias Studio',
       default_popup: 'popup.html',
       default_icon: {
-        '16': 'icon.png',
-        '24': 'icon.png',
-        '32': 'icon.png'
+        '128': 'icon.png'
       }
     },
     options_ui: {
@@ -68,7 +65,13 @@ export function buildManifest(target: ExtensionTarget): Record<string, unknown> 
       gecko: {
         id: GECKO_ID,
         // 128 = first ESR with MV3 module background scripts.
-        strict_min_version: '128.0'
+        strict_min_version: '128.0',
+        // Nothing is collected by this extension: aliases and Cloudflare
+        // credentials stay in extension storage and go only to the user's own
+        // Cloudflare account. Newer Firefox/AMO require this to be explicit.
+        data_collection_permissions: {
+          required: ['none']
+        }
       }
     };
 
