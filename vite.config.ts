@@ -1,10 +1,25 @@
 import { resolve } from 'node:path';
 import { defineConfig } from 'vite';
+import { buildManifest, resolveTarget } from './manifest.config';
+
+const target = resolveTarget(process.env.EXT_TARGET);
 
 export default defineConfig({
   publicDir: 'public',
+  plugins: [
+    {
+      name: 'emit-extension-manifest',
+      generateBundle() {
+        this.emitFile({
+          type: 'asset',
+          fileName: 'manifest.json',
+          source: `${JSON.stringify(buildManifest(target), null, 2)}\n`
+        });
+      }
+    }
+  ],
   build: {
-    outDir: 'dist',
+    outDir: `dist/${target}`,
     emptyOutDir: true,
     rollupOptions: {
       input: {

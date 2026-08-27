@@ -1,3 +1,4 @@
+import { ext } from './browser';
 import type { AliasRecord, ExtensionSettings } from './types';
 import { DEFAULT_SETTINGS, HISTORY_LIMIT } from './types';
 import { sanitizeSettings } from './validation';
@@ -6,7 +7,7 @@ const SETTINGS_KEY = 'settings';
 const HISTORY_KEY = 'aliasHistory';
 
 export async function getSettings(): Promise<ExtensionSettings> {
-  const result = await chrome.storage.sync.get(SETTINGS_KEY);
+  const result = await ext.storage.sync.get(SETTINGS_KEY);
   const raw = result[SETTINGS_KEY] as Partial<ExtensionSettings> | undefined;
 
   return {
@@ -16,13 +17,13 @@ export async function getSettings(): Promise<ExtensionSettings> {
 }
 
 export async function saveSettings(settings: ExtensionSettings): Promise<void> {
-  await chrome.storage.sync.set({
+  await ext.storage.sync.set({
     [SETTINGS_KEY]: sanitizeSettings(settings)
   });
 }
 
 export async function getHistory(): Promise<AliasRecord[]> {
-  const result = await chrome.storage.local.get(HISTORY_KEY);
+  const result = await ext.storage.local.get(HISTORY_KEY);
   const raw = result[HISTORY_KEY] as AliasRecord[] | undefined;
   if (!Array.isArray(raw)) {
     return [];
@@ -58,7 +59,7 @@ export async function addHistoryRecord(record: AliasRecord): Promise<void> {
   const normalizedRecord = normalizeHistoryRecord(record);
   const deduped = current.filter((item) => normalizeAlias(item.alias) !== normalizedRecord.alias);
   const next = [normalizedRecord, ...deduped].slice(0, HISTORY_LIMIT);
-  await chrome.storage.local.set({
+  await ext.storage.local.set({
     [HISTORY_KEY]: next
   });
 }
@@ -85,7 +86,7 @@ export async function mergeHistoryRecords(records: AliasRecord[]): Promise<Alias
     .sort((left, right) => parseCreatedAt(right.createdAt) - parseCreatedAt(left.createdAt))
     .slice(0, HISTORY_LIMIT);
 
-  await chrome.storage.local.set({
+  await ext.storage.local.set({
     [HISTORY_KEY]: next
   });
 
@@ -93,7 +94,7 @@ export async function mergeHistoryRecords(records: AliasRecord[]): Promise<Alias
 }
 
 export async function clearHistory(): Promise<void> {
-  await chrome.storage.local.set({
+  await ext.storage.local.set({
     [HISTORY_KEY]: []
   });
 }
@@ -106,7 +107,7 @@ export async function deleteHistoryRecord(recordId: string): Promise<boolean> {
     return false;
   }
 
-  await chrome.storage.local.set({
+  await ext.storage.local.set({
     [HISTORY_KEY]: next
   });
 

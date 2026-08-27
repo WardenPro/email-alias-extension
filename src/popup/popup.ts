@@ -1,3 +1,4 @@
+import { ext, hasCloudflareAccess } from '../lib/browser';
 import type { AliasRecord, CloudflareStatus, ExtensionSettings } from '../lib/types';
 import { sendRuntimeMessage } from '../lib/messages';
 import { initializeThemeToggle } from '../lib/theme';
@@ -43,7 +44,7 @@ function setAliasValue(alias: string): void {
 }
 
 async function getActiveTab(): Promise<chrome.tabs.Tab | null> {
-  const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+  const tabs = await ext.tabs.query({ active: true, currentWindow: true });
   return tabs[0] ?? null;
 }
 
@@ -205,7 +206,7 @@ async function fillEmailField(alias: string): Promise<boolean> {
 
   let result: chrome.scripting.InjectionResult<unknown>[];
   try {
-    result = await chrome.scripting.executeScript({
+    result = await ext.scripting.executeScript({
       target: { tabId: tab.id },
       func: findEmailInputAndFill,
       args: [alias]
@@ -364,11 +365,17 @@ async function finalizeAliasFlow(
   let cloudflareErrorCode = '';
   let copyOk = true;
 
-  const cloudflareResponse = await sendRuntimeMessage({
-    type: 'CREATE_CLOUDFLARE_ALIAS',
-    alias,
-    destinationEmail
-  });
+  const cloudflareResponse = (await hasCloudflareAccess())
+    ? await sendRuntimeMessage({
+        type: 'CREATE_CLOUDFLARE_ALIAS',
+        alias,
+        destinationEmail
+      })
+    : ({
+        ok: false,
+        error: 'access to api.cloudflare.com not granted (see options page)',
+        code: 'MISSING_PERMISSION'
+      } as const);
 
   if (cloudflareResponse.ok) {
     cloudflareStatus = cloudflareResponse.data.status;

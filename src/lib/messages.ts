@@ -1,3 +1,4 @@
+import { ext } from './browser';
 import type { AliasGenerationResult, AliasRecord, ExtensionSettings } from './types';
 import type { CloudflareEnsureStatus } from './cloudflare';
 
@@ -45,6 +46,6 @@ export type RuntimeResponse<T = unknown> =
 export async function sendRuntimeMessage<K extends keyof RuntimeResponseMap>(
   request: Extract<RuntimeRequest, { type: K }>
 ): Promise<RuntimeResponse<RuntimeResponseMap[K]>> {
-  const response = (await chrome.runtime.sendMessage(request)) as RuntimeResponse<RuntimeResponseMap[K]>;
+  const response = (await ext.runtime.sendMessage(request)) as RuntimeResponse<RuntimeResponseMap[K]>;
   return response;
 }

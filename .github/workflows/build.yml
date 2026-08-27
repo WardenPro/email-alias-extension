@@ -37,7 +37,7 @@ jobs:
       - name: Run checks
         run: npm run ci:check
 
-      - name: Package extension zip
+      - name: Package extension zips (chrome + firefox)
         run: npm run package
 
       - name: Upload package artifact
@@ -114,9 +114,9 @@ jobs:
       - name: Resolve package path
         run: |
           set -euo pipefail
-          zip_path="$(ls -1 release/*.zip | head -n 1)"
-          if [ -z "$zip_path" ]; then
-            echo "No release zip found in release/"
+          zip_path="release/email-alias-extension-chrome.zip"
+          if [ ! -f "$zip_path" ]; then
+            echo "No Chrome release zip found at $zip_path"
             exit 1
           fi
           echo "ZIP_PATH=$zip_path" >> "$GITHUB_ENV"
