@@ -178,3 +178,73 @@ jobs:
             exit 1
           fi
           echo "Publish succeeded."
+
+  sign-firefox:
+    needs: [build, release]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v') && github.repository_owner == 'WardenPro'
+    env:
+      WEB_EXT_API_KEY: ${{ secrets.AMO_JWT_ISSUER }}
+      WEB_EXT_API_SECRET: ${{ secrets.AMO_JWT_SECRET }}
+
+    steps:
+      - name: Check AMO credentials
+        id: creds
+        run: |
+          set -euo pipefail
+          if [ -z "${WEB_EXT_API_KEY:-}" ] || [ -z "${WEB_EXT_API_SECRET:-}" ]; then
+            echo "AMO credentials are not configured: skipping Firefox signing."
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout
+        if: steps.creds.outputs.configured == 'true'
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        if: steps.creds.outputs.configured == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Download package artifact
+        if: steps.creds.outputs.configured == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: email-alias-extension-package
+          path: release
+
+      - name: Unpack Firefox build
+        if: steps.creds.outputs.configured == 'true'
+        run: |
+          set -euo pipefail
+          zip_path="release/email-alias-extension-firefox.zip"
+          if [ ! -f "$zip_path" ]; then
+            echo "No Firefox release zip found at $zip_path"
+            exit 1
+          fi
+          rm -rf signing-source
+          mkdir -p signing-source
+          unzip -q "$zip_path" -d signing-source
+
+      - name: Sign with AMO (unlisted)
+        if: steps.creds.outputs.configured == 'true'
+        run: |
+          set -euo pipefail
+          npx --yes web-ext@8 sign \
+            --source-dir signing-source \
+            --artifacts-dir web-ext-artifacts \
+            --channel unlisted \
+            --no-input
+          ls -l web-ext-artifacts
+
+      - name: Attach signed XPI to release
+        if: steps.creds.outputs.configured == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: web-ext-artifacts/*.xpi
+          generate_release_notes: false
+          append_body: false

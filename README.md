@@ -81,8 +81,24 @@ repository:
   release on `main`, and to the tag release on `v*`.
 - `publish-webstore` — uploads the Chrome zip on `v*` tags, and is skipped with
   a log line (instead of failing) when the `CWS_*` secrets are not configured.
+- `sign-firefox` — on `v*` tags, signs the Firefox build with AMO on the
+  **unlisted** channel (automated validation, nothing published in the AMO
+  catalog) and attaches the signed `.xpi` to the release. Skipped with a log
+  line when the `AMO_*` secrets are not configured.
 
-Firefox/AMO submission stays manual.
+Required repository secrets: `AMO_JWT_ISSUER` (the AMO *JWT issuer*, e.g.
+`user:12345678:123`) and `AMO_JWT_SECRET`, from
+<https://addons.mozilla.org/developers/addon/api/key/>.
+
+Signing locally instead (needs `WEB_EXT_API_KEY` / `WEB_EXT_API_SECRET` in the
+environment, same two values):
+
+```bash
+npm run sign:firefox     # signed .xpi lands in web-ext-artifacts/
+```
+
+AMO rejects a version it has already seen, so bump `version` in `package.json`
+before each signature — the manifests read it.
 
 ## Browser targets
 

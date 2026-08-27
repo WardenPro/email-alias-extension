@@ -17,7 +17,9 @@
     "build:chrome": "node scripts/build.mjs chrome",
     "build:firefox": "node scripts/build.mjs firefox",
     "package:chrome": "node scripts/build.mjs --package chrome",
-    "package:firefox": "node scripts/build.mjs --package firefox"
+    "package:firefox": "node scripts/build.mjs --package firefox",
+    "sign:firefox": "npm run build:firefox && npx --yes web-ext@8 sign --source-dir dist/firefox --artifacts-dir web-ext-artifacts --channel unlisted --no-input",
+    "lint:firefox": "npm run build:firefox && npx --yes web-ext@8 lint --source-dir dist/firefox"
   },
   "devDependencies": {
     "@types/chrome": "^0.1.22",
