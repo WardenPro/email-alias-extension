@@ -37,7 +37,7 @@ jobs:
       - name: Run checks
         run: npm run ci:check
 
-      - name: Package extension zip
+      - name: Package extension zips (chrome + firefox)
         run: npm run package
 
       - name: Upload package artifact
@@ -50,7 +50,8 @@ jobs:
   release:
     needs: build
     runs-on: ubuntu-latest
-    if: github.event_name != 'pull_request'
+    # Publish only from this fork: never create releases in any other repository.
+    if: github.event_name != 'pull_request' && github.repository_owner == 'WardenPro'
 
     steps:
       - name: Download package artifact
@@ -83,7 +84,7 @@ jobs:
   publish-webstore:
     needs: build
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/v') && github.repository_owner == 'WardenPro'
     env:
       CWS_EXTENSION_ID: ${{ secrets.CWS_EXTENSION_ID }}
       CWS_CLIENT_ID: ${{ secrets.CWS_CLIENT_ID }}
@@ -91,7 +92,8 @@ jobs:
       CWS_REFRESH_TOKEN: ${{ secrets.CWS_REFRESH_TOKEN }}
 
     steps:
-      - name: Validate required secrets
+      - name: Check store credentials
+        id: creds
         run: |
           set -euo pipefail
           missing=0
@@ -102,27 +104,33 @@ jobs:
             fi
           done
           if [ "$missing" -ne 0 ]; then
-            exit 1
+            echo "Chrome Web Store secrets are not configured: skipping publish."
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Download package artifact
+        if: steps.creds.outputs.configured == 'true'
         uses: actions/download-artifact@v4
         with:
           name: email-alias-extension-package
           path: release
 
       - name: Resolve package path
+        if: steps.creds.outputs.configured == 'true'
         run: |
           set -euo pipefail
-          zip_path="$(ls -1 release/*.zip | head -n 1)"
-          if [ -z "$zip_path" ]; then
-            echo "No release zip found in release/"
+          zip_path="release/email-alias-extension-chrome.zip"
+          if [ ! -f "$zip_path" ]; then
+            echo "No Chrome release zip found at $zip_path"
             exit 1
           fi
           echo "ZIP_PATH=$zip_path" >> "$GITHUB_ENV"
           echo "Found package: $zip_path"
 
       - name: Get OAuth access token
+        if: steps.creds.outputs.configured == 'true'
         run: |
           set -euo pipefail
           token_response="$(curl -sS -X POST "https://oauth2.googleapis.com/token" \
@@ -139,6 +147,7 @@ jobs:
           echo "CWS_ACCESS_TOKEN=$access_token" >> "$GITHUB_ENV"
 
       - name: Upload package to Chrome Web Store
+        if: steps.creds.outputs.configured == 'true'
         run: |
           set -euo pipefail
           upload_response="$(curl -sS -X PUT \
@@ -155,6 +164,7 @@ jobs:
           echo "Upload succeeded."
 
       - name: Publish item to Chrome Web Store
+        if: steps.creds.outputs.configured == 'true'
         run: |
           set -euo pipefail
           publish_response="$(curl -sS -X POST \

@@ -1,3 +1,4 @@
+import { requestCloudflareAccess } from '../lib/browser';
 import { sendRuntimeMessage } from '../lib/messages';
 import { getSettings, saveSettings } from '../lib/storage';
 import { initializeThemeToggle } from '../lib/theme';
@@ -60,6 +61,12 @@ async function handleSave(event: SubmitEvent): Promise<void> {
   }
 
   await saveSettings(settings);
+
+  if (!(await requestCloudflareAccess())) {
+    setStatus('Settings saved, but access to api.cloudflare.com was denied. Grant it to create aliases.');
+    return;
+  }
+
   setStatus('Settings saved.');
 }
 
@@ -68,6 +75,11 @@ async function handleTestCloudflare(): Promise<void> {
   const errors = validateSettings(settings);
   if (errors.length > 0) {
     setStatus(errors[0]);
+    return;
+  }
+
+  if (!(await requestCloudflareAccess())) {
+    setStatus('Access to api.cloudflare.com is required to reach Cloudflare.');
     return;
   }
 

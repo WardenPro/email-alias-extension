@@ -1,3 +1,4 @@
+import { ext } from '../lib/browser';
 import { buildAliasEmail, extractSiteHost, generateAliasLocalPart, hostToSiteSlug } from '../lib/alias';
 import {
   CloudflareApiError,
@@ -275,7 +276,7 @@ async function handleRequest(request: RuntimeRequest): Promise<RuntimeResponse> 
   }
 }
 
-chrome.runtime.onMessage.addListener((request: RuntimeRequest, _sender, sendResponse) => {
+ext.runtime.onMessage.addListener((request: RuntimeRequest, _sender, sendResponse) => {
   void handleRequest(request)
     .then((response) => sendResponse(response))
     .catch((error) => {
